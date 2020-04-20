@@ -12,8 +12,18 @@ class Functions(object):
 	def __init__(self,name):
 		self.name = name
 		self.num =1
+		self.is_packaged = False
+		#self.origi = None
 	def increase_num(self):
 		self.num += 1
+	def package(self, origi):
+		self.is_packaged = True
+		self.origi = origi
+
+def fun_package_add(func_name, fun_list):
+	for i in fun_list:
+		if func_name == i.name :
+			i.package(func_name)
 
 def fun_list_add(func_name, fun_list):
 	flag = False
@@ -47,7 +57,6 @@ def get_caller(func_name, osintneting, fun_list, recv_recall_chain):
 		#sys.stdout.write('\r\n')
 		recv_recall_chain.pop()
 		return
-
 	# 深度优先
 	while (addr_ref_to != BADADDR) and (addr_ref_to != addr):
 		parent_func_name = get_func_name(addr_ref_to)
@@ -60,7 +69,6 @@ def get_caller(func_name, osintneting, fun_list, recv_recall_chain):
 def get_imports(entries):
 	for i in range(0,idaapi.get_import_module_qty()):
 		dllname = idaapi.get_import_module_name(i)
-		print dllname
 		def cb(ea, name, ord):
 			entries.append(name)
 			return True
@@ -80,17 +88,30 @@ def filter_potential_func():
 	#add_socket_func(potential_func)
 	osintneting = 5
 	potential_func_list = []
+	package_func = []
 	#存放反向调用链信息
 	recv_recall_chain = []
 	for func in potential_func :
 		del recv_recall_chain[:]
 		get_caller(func, osintneting, potential_func_list, recv_recall_chain)
+	#获取封装函数
+	osintneting = 2
+	for func in potential_func :
+		del recv_recall_chain[:]
+		get_caller(func, osintneting, package_func, recv_recall_chain)
+		for i in package_func:
+			for j in potential_func_list:
+				if i.name == j.name:
+					j.package(func)
 	return potential_func_list
 #main
 def main():
 	potential_func_list = filter_potential_func()
 	for i in potential_func_list:
-		print i.name, i.num
+		if i.is_packaged == False:
+			print i.name, i.num
+		else:
+			print i.name,i.is_packaged,i.origi
 
 if __name__=="__main__":
 	main()
