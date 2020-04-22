@@ -4,11 +4,12 @@
 import sys
 import idautils
 from idaapi import *
-sys.path.append('vivisect')
+sys.path.append('vivisect-master')
 
 import logging
 logging.basicConfig()
-#参数个数与push有关
+
+#函数参数个数与push有关
 class Functions(object):
 	def __init__(self,name):
 		self.name = name

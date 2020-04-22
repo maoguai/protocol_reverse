@@ -16,6 +16,7 @@
 + ida pro 7
 + python-idb
 + vivisect
+  + vivisect 老版本有兼容问题，更新至最新版
 
 ### 输入
 
@@ -31,9 +32,7 @@ idb文件
   - [ ] 添加其他通信函数
   - [x] 识别出通信函数的封装函数(疑似)
 - [ ] - [ ] 长度
-    - [ ] vivisect模块识别不到constants模块，未解决
   - [ ] 赋值
-    - [ ] vivisect模块识别不到constants模块，未解决
   - [x] 循环
     - [x] 识别含有循环的函数，循环起始地址
   - [ ] 选择
