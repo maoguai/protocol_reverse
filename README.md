@@ -13,11 +13,9 @@
 ### 环境依赖
 
 + python 2.7
-
 + ida pro 7
-
 + python-idb
-+ vivisect   
++ vivisect
 
 ### 输入
 
@@ -37,6 +35,7 @@ idb文件
   - [ ] 赋值
     - [ ] vivisect模块识别不到constants模块，未解决
   - [x] 循环
+    - [x] 识别含有循环的函数，循环起始地址
   - [ ] 选择
 - [ ] 输出
   - [ ] 协议特征

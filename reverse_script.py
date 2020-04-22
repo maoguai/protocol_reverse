@@ -8,7 +8,7 @@ sys.path.append('vivisect')
 
 import logging
 logging.basicConfig()
-
+#参数个数与push有关
 class Functions(object):
 	def __init__(self,name):
 		self.name = name
@@ -116,9 +116,9 @@ def isCir(func,start,end):
 			if new_addr[-1:]<='9' and new_addr[-1:]>='0':
 				if int(new_addr,16)<ea:
 					#添加注释
-					print("循环跳转指令："+ ' '.join(hex(ea)))
+					#print("循环跳转指令："+ ' '.join(hex(ea)))
 					op1=idc.GetOpnd(ea,0)
-					print("循环起始地址："+ ' '.join(op1))
+					#print("循环起始地址："+ ' '.join(op1))
 					func.circle(ea, op1)
 					flag = True
 					#MakeComm(ea,"循环跳转指令")
@@ -134,6 +134,41 @@ def selection_function_recognition(potential_func_list):
 			if isCir(func, start, end) :
 				loop_func.append(func)
 
+def handleCreateThread(ea):
+    vw = c_jayutils.loadWorkspace(c_jayutils.getInputFilepath())
+    tracker = c_argtracker.ArgTracker(vw)
+    #interestingXrefs = CodeRefsTo(ea, 1)
+    #print(interestingXrefs)
+    #for xref in interestingXrefs:
+    xref = ea
+    argsList = tracker.getPushArgs(xref, 3)#['eax', 'ebx', 'ecx', 'edx', 'edi'])
+    a=tracker.getPushArgs(xref, 0 ,['eax'])
+    b=tracker.getPushArgs(xref, 0 ,['ebx'])
+    c=tracker.getPushArgs(xref, 0 ,['ecx'])
+    d=tracker.getPushArgs(xref, 0 ,['edx'])
+    i=tracker.getPushArgs(xref, 0 ,['edi'])
+    print('argsList:')
+    print (argsList,a,b,c,d,i)
+    if len(argsList) == 0:
+        print('Unable to get push args at: 0x%08x' % xref)
+    else:
+        for argDict in argsList:
+            locVa, strloc = argDict[2]
+            '''
+            lenVa, strlen = argDict['edi']
+            eaxVa, eaxkey = argDict['eax']
+            ebxVa, ebxkey = argDict['eax']
+            ecxVa, ecxkey = argDict['eax']
+            edxVa, edxkey = argDict['eax']
+            '''
+            print 'Found: 0x%08x: 0x%08x' % (locVa, strloc)
+            '''
+            print 'eax: 0x%08x: 0x%08x' % (eaxVa, eaxkey)
+            print 'ebx: 0x%08x: 0x%08x' % (ebxVa, ebxkey)
+            print 'ecx: 0x%08x: 0x%08x' % (ecxVa, ecxkey)
+            print 'edx: 0x%08x: 0x%08x' % (edxVa, edxkey)
+            print 'edi: 0x%08x: 0x%08x' % (lenVa, strlen)
+            '''
 
 def length_function_recognition(potential_func_list):
 	package_func = []
@@ -145,6 +180,8 @@ def length_function_recognition(potential_func_list):
 		if addr != BADADDR:
 		#找到交叉引用的地址
 			cross_refs = CodeRefsTo(addr, 0)
+			for ref in cross_refs:
+				handleCreateThread(ref)
 
 
 #特征识别
@@ -199,6 +236,6 @@ def main():
 		else:
 			print i.name,i.is_packaged,i.origi
 	'''
-	
+
 if __name__=="__main__":
 	main()
