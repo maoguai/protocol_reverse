@@ -127,11 +127,12 @@ def isCir(func,start,end):
 
 def isSel(func,start,end):
 	flag = False
+	jmpOp = ["je", "jne", "ja", "jna", "jb", "jnb"]
 	cur_start=start
 	for cur_start in range(start,end):
 		op1=GetMnem(cur_start)
 		next_start=idc.NextHead(cur_start,end) ###读取下一个指令的地址
-		if (op1 == 'jz' or op2 == 'jmp' or op2 == 'jl' or op2 == 'jnz'):
+		if op1 in jmpOp:
 			new_addr=GetDisasm(cur_start)[-6:]
 			if new_addr[-1:]<='9' and new_addr[-1:]>='0':
 				if int(new_addr,16) > cur_start:
