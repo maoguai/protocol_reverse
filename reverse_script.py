@@ -139,7 +139,6 @@ def isSel(func,start,end):
 					jmp_addr = idc.GetOpnd(ea,0)
 					flag = True
 
-
 def handleCreateThread(ea):
     vw = c_jayutils.loadWorkspace(c_jayutils.getInputFilepath())
     tracker = c_argtracker.ArgTracker(vw)
