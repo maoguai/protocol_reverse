@@ -118,22 +118,26 @@ def isCir(func,start,end):
 				if int(new_addr,16)<ea:
 					#添加注释
 					#print("循环跳转指令："+ ' '.join(hex(ea)))
-					op1=idc.GetOpnd(ea,0)
+					op1 = idc.GetOpnd(ea,0)
 					#print("循环起始地址："+ ' '.join(op1))
 					func.circle(ea, op1)
 					flag = True
 					#MakeComm(ea,"循环跳转指令")
 	return flag
 
-def selection_function_recognition(potential_func_list):
-	loop_func =[]
-	for func in potential_func_list:
-		addr = LocByName(func.name)
-		if addr != BADADDR:
-			start = addr #GetFunctionAttr(ref, FUNCATTR_START)
-			end = GetFunctionAttr(addr, FUNCATTR_END)
-			if isCir(func, start, end) :
-				loop_func.append(func)
+def isSel(func,start,end):
+	flag = False
+	cur_start=start
+	for cur_start in range(start,end):
+		op1=GetMnem(cur_start)
+		next_start=idc.NextHead(cur_start,end) ###读取下一个指令的地址
+		if (op1 == 'jz' or op2 == 'jmp' or op2 == 'jl' or op2 == 'jnz'):
+			new_addr=GetDisasm(cur_start)[-6:]
+			if new_addr[-1:]<='9' and new_addr[-1:]>='0':
+				if int(new_addr,16) > cur_start:
+					jmp_addr = idc.GetOpnd(ea,0)
+					flag = True
+
 
 def handleCreateThread(ea):
     vw = c_jayutils.loadWorkspace(c_jayutils.getInputFilepath())
@@ -142,34 +146,38 @@ def handleCreateThread(ea):
     #print(interestingXrefs)
     #for xref in interestingXrefs:
     xref = ea
+    # 未解决3来源
     argsList = tracker.getPushArgs(xref, 3)#['eax', 'ebx', 'ecx', 'edx', 'edi'])
-    a=tracker.getPushArgs(xref, 0 ,['eax'])
-    b=tracker.getPushArgs(xref, 0 ,['ebx'])
-    c=tracker.getPushArgs(xref, 0 ,['ecx'])
-    d=tracker.getPushArgs(xref, 0 ,['edx'])
-    i=tracker.getPushArgs(xref, 0 ,['edi'])
     print('argsList:')
     print (argsList,a,b,c,d,i)
     if len(argsList) == 0:
         print('Unable to get push args at: 0x%08x' % xref)
     else:
         for argDict in argsList:
+        	#未解决2的来源
             locVa, strloc = argDict[2]
-            '''
-            lenVa, strlen = argDict['edi']
-            eaxVa, eaxkey = argDict['eax']
-            ebxVa, ebxkey = argDict['eax']
-            ecxVa, ecxkey = argDict['eax']
-            edxVa, edxkey = argDict['eax']
-            '''
             print 'Found: 0x%08x: 0x%08x' % (locVa, strloc)
-            '''
-            print 'eax: 0x%08x: 0x%08x' % (eaxVa, eaxkey)
-            print 'ebx: 0x%08x: 0x%08x' % (ebxVa, ebxkey)
-            print 'ecx: 0x%08x: 0x%08x' % (ecxVa, ecxkey)
-            print 'edx: 0x%08x: 0x%08x' % (edxVa, edxkey)
-            print 'edi: 0x%08x: 0x%08x' % (lenVa, strlen)
-            '''
+
+def equal_reg_handle(ea):
+	vw = c_jayutils.loadWorkspace(c_jayutils.getInputFilepath())
+	tracker = c_argtracker.ArgTracker(vw)
+	xref = ea
+	op1=idc.GetOpnd(xref,1)
+	if op1 == 'eax' or op1 == 'ax' or op1 == 'al':
+		m = 'eax'
+	elif op1 == 'ebx' or op1 == 'bx' or op1 == 'bl':
+		m = 'ebx'
+	elif op1 == 'ecx' or op1 == 'cx' or op1 == 'cl':
+		m = 'ecx'
+	elif op1 == 'edx' or op1 == 'dx' or op1 == 'dl':
+		m = 'edx'
+	else :
+		m = op1
+	b = tracker.getPushArgs(xref, 0 ,[m])
+	for argDict in b:
+		ebxVa, ebxkey = argDict[m]
+	print 'Found: 0x%08x: 0x%08x' % (xref, ebxkey)
+	vuln_equal_dic[hex(xref)] =hex(ebxkey)
 
 def length_function_recognition(potential_func_list):
 	package_func = []
@@ -179,19 +187,61 @@ def length_function_recognition(potential_func_list):
 	for func in package_func:
 		addr = LocByName(func.name)
 		if addr != BADADDR:
-		#找到交叉引用的地址
+			#找到交叉引用的地址
 			cross_refs = CodeRefsTo(addr, 0)
 			for ref in cross_refs:
 				handleCreateThread(ref)
 
+def assignment_function_recognition(potential_func_list):
+	vuln_equal_array = []
+	vuln_equal_dic ={}
+	for i in potential_func_list:
+		addr = LocByName(func.name)
+		call_array = []
+		if addr != BADADDR:
+			start = addr #GetFunctionAttr(ref, FUNCATTR_START)
+			end = GetFunctionAttr(addr, FUNCATTR_END)
+			cur_start = start
+			while cur_start <= end: ###结束条件为当前指令地址大于函数的结束地址
+    		##disasm = idc.GetDisasm(cur_start)
+				call_array.append(cur_start)
+				cur_start=idc.NextHead(cur_start,end) ###读取下一个指令的地址
+			for item in call_array:
+				keyInstr = item  #address
+				#print hex(keyInstr), idc.GetDisasm(keyInstr)
+				if GetMnem(keyInstr) == "mov":
+					if GetOpType(keyInstr,1) == 1 :
+						equal_reg_handle(keyInstr)
+						vuln_equal_array.append(keyInstr)
+					elif GetOpType(keyInstr,1) == 5:
+						ope_va = GetOperandValue(keyInstr, 1)
+						print 'Found: 0x%08x: 0x%08x' % (keyInstr, ope_va)
+						vuln_equal_array.append(keyInstr)
+						vuln_equal_dic[hex(keyInstr)] = hex(ope_va)
+
+def loop_function_recognition(potential_func_list):
+	loop_func =[]
+	for func in potential_func_list:
+		addr = LocByName(func.name)
+		if addr != BADADDR:
+			start = addr #GetFunctionAttr(ref, FUNCATTR_START)
+			end = GetFunctionAttr(addr, FUNCATTR_END)
+			if isCir(func, start, end) :
+				loop_func.append(func)
+
+def selection_function_recognition(potential_func_list):
+	for func in potential_func_list:
+		addr = LocByName(func.name)
+		if addr != BADADDR:
+			start = addr #GetFunctionAttr(ref, FUNCATTR_START)
+			end = GetFunctionAttr(addr, FUNCATTR_END)
+			if isSel(func, start, end) :
 
 #特征识别
 def feature_recognition(potential_func_list):
-	'''
 	length_function_recognition(potential_func_list)
-	assignment_function_recognition()
-	loop_function_recognition()
-	'''
+	assignment_function_recognition(potential_func_list)
+	loop_function_recognition(potential_func_list)
 	selection_function_recognition(potential_func_list)
 
 #筛选疑似函数
