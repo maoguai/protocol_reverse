@@ -4,8 +4,9 @@
 import sys
 import idautils
 from idaapi import *
-sys.path.append('vivisect-master')
-
+sys.path.append('/Users/maoguai/Desktop/program/py/protocol_reverse/vivisect-master')
+import flare.jayutils as c_jayutils
+import flare.argtracker as c_argtracker
 import logging
 logging.basicConfig()
 
@@ -15,6 +16,7 @@ class Functions(object):
 		self.name = name
 		self.num =1
 		self.is_packaged = False
+		self.is_length = False
 		#self.origi = None
 	def increase_num(self):
 		self.num += 1
@@ -24,6 +26,10 @@ class Functions(object):
 	def circle(self, ea, op):
 		self.circle_intr = ea
 		self.circle_op = op
+	def length(self, addr, parameter):
+		self.is_length = True
+		self.len_func_addr = addr
+		self.len_func_para = parameter
 
 #添加封装函数
 def fun_package_add(func_name, fun_list):
@@ -145,15 +151,19 @@ def handleCreateThread(ea):
     xref = ea
     # 未解决3来源
     argsList = tracker.getPushArgs(xref, 3)#['eax', 'ebx', 'ecx', 'edx', 'edi'])
-    print('argsList:')
-    print (argsList,a,b,c,d,i)
+    #print('argsList:')
+    #print (argsList)
+    flag = False
     if len(argsList) == 0:
         print('Unable to get push args at: 0x%08x' % xref)
+        return flag, None , None
     else:
         for argDict in argsList:
         	#未解决2的来源
             locVa, strloc = argDict[2]
             print 'Found: 0x%08x: 0x%08x' % (locVa, strloc)
+            flag = True
+            return flag, locVa, strloc
 
 def equal_reg_handle(ea):
 	vw = c_jayutils.loadWorkspace(c_jayutils.getInputFilepath())
@@ -178,6 +188,7 @@ def equal_reg_handle(ea):
 
 def length_function_recognition(potential_func_list):
 	package_func = []
+	length_function = []
 	for i in potential_func_list:
 		if i.is_packaged == True:
 			package_func.append(i)
@@ -187,7 +198,11 @@ def length_function_recognition(potential_func_list):
 			#找到交叉引用的地址
 			cross_refs = CodeRefsTo(addr, 0)
 			for ref in cross_refs:
-				handleCreateThread(ref)
+				flag, int_addr, int_num = handleCreateThread(ref)
+				if flag == True:
+					func.length(int_addr, int_num)
+					length_function.append(func)
+	return length_function
 
 def assignment_function_recognition(potential_func_list):
 	vuln_equal_array = []
@@ -232,14 +247,18 @@ def selection_function_recognition(potential_func_list):
 		if addr != BADADDR:
 			start = addr #GetFunctionAttr(ref, FUNCATTR_START)
 			end = GetFunctionAttr(addr, FUNCATTR_END)
-			if isSel(func, start, end) :
+			if isSel(func, start, end):
+				print "1"
 
 #特征识别
+
 def feature_recognition(potential_func_list):
 	length_function_recognition(potential_func_list)
+	'''
 	assignment_function_recognition(potential_func_list)
 	loop_function_recognition(potential_func_list)
 	selection_function_recognition(potential_func_list)
+	'''
 
 #筛选疑似函数
 def filter_potential_func():
@@ -276,14 +295,12 @@ def filter_potential_func():
 #main
 def main():
 	potential_func_list = filter_potential_func()
-	feature_recognition(potential_func_list)
-	'''
-	for i in potential_func_list:
-		if i.is_packaged == False:
-			print i.name, i.num
-		else:
-			print i.name,i.is_packaged,i.origi
-	'''
+	length_function_list = feature_recognition(potential_func_list)
+	print 'i'
+	if length_function_list:
+		for i in length_function_list:
+			if i.is_length == True:
+				print i.name, i.origi, i.len_func_addr, i.len_func_para
 
 if __name__=="__main__":
 	main()
