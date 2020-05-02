@@ -16,7 +16,6 @@ class Functions(object):
 		self.name = name
 		self.num =1
 		self.is_packaged = False
-		self.is_length = False
 		#self.origi = None
 	def increase_num(self):
 		self.num += 1
@@ -26,10 +25,12 @@ class Functions(object):
 	def circle(self, ea, op):
 		self.circle_intr = ea
 		self.circle_op = op
-	def length(self, addr, parameter):
-		self.is_length = True
-		self.len_func_addr = addr
-		self.len_func_para = parameter
+
+class Length_Function(object):
+	def __init__(self, func, addr, para):
+		self.func = func
+		self.addr = addr
+		self.para = para
 
 #添加封装函数
 def fun_package_add(func_name, fun_list):
@@ -70,7 +71,7 @@ def get_caller(func_name, osintneting, fun_list, recv_recall_chain):
 			#sys.stdout.write(recv_recall_chain[length - idx - 1])
 		#sys.stdout.write('\r\n')
 		recv_recall_chain.pop()
-		return
+		return 
 	# 深度优先
 	while (addr_ref_to != BADADDR) and (addr_ref_to != addr):
 		parent_func_name = get_func_name(addr_ref_to)
@@ -199,9 +200,12 @@ def length_function_recognition(potential_func_list):
 			cross_refs = CodeRefsTo(addr, 0)
 			for ref in cross_refs:
 				flag, int_addr, int_num = handleCreateThread(ref)
+				print flag, int_addr, int_num
 				if flag == True:
-					func.length(int_addr, int_num)
-					length_function.append(func)
+					a = Length_Function(func, hex(int_addr), int_num)
+					length_function.append(a)
+	for i in length_function:
+		print i.func.name, i.func.origi, i.addr, i.para
 	return length_function
 
 def assignment_function_recognition(potential_func_list):
@@ -276,6 +280,8 @@ def filter_potential_func():
 	osintneting = 5
 	potential_func_list = []
 	package_func = []
+	old = []
+	new = []
 	#存放反向调用链信息
 	recv_recall_chain = []
 	for func in potential_func :
@@ -285,22 +291,27 @@ def filter_potential_func():
 	osintneting = 2
 	for func in potential_func :
 		del recv_recall_chain[:]
+		old = package_func[:]
 		get_caller(func, osintneting, package_func, recv_recall_chain)
-		for i in package_func:
-			for j in potential_func_list:
-				if i.name == j.name:
-					j.package(func)
+		new = list(set(package_func).difference(set(old)))
+		if new:
+			for i in new:
+				for j in potential_func_list:
+					if i.name == j.name:
+						j.package(func)
 	return potential_func_list
 
 #main
 def main():
 	potential_func_list = filter_potential_func()
 	length_function_list = feature_recognition(potential_func_list)
+	'''
 	print 'i'
 	if length_function_list:
 		for i in length_function_list:
 			if i.is_length == True:
 				print i.name, i.origi, i.len_func_addr, i.len_func_para
+	'''
 
 if __name__=="__main__":
 	main()
