@@ -257,7 +257,7 @@ def selection_function_recognition(potential_func_list):
 #特征识别
 
 def feature_recognition(potential_func_list):
-	length_function_recognition(potential_func_list)
+	length_function = length_function_recognition(potential_func_list)
 	'''
 	assignment_function_recognition(potential_func_list)
 	loop_function_recognition(potential_func_list)
@@ -304,7 +304,7 @@ def filter_potential_func():
 #main
 def main():
 	potential_func_list = filter_potential_func()
-	length_function_list = feature_recognition(potential_func_list)
+	feature_recognition(potential_func_list)
 	'''
 	print 'i'
 	if length_function_list:
