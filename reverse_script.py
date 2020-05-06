@@ -166,7 +166,7 @@ def handleCreateThread(ea):
             flag = True
             return flag, locVa, strloc
 
-def equal_reg_handle(ea):
+def equal_reg_handle(ea, dic):
 	vw = c_jayutils.loadWorkspace(c_jayutils.getInputFilepath())
 	tracker = c_argtracker.ArgTracker(vw)
 	xref = ea
@@ -184,8 +184,8 @@ def equal_reg_handle(ea):
 	b = tracker.getPushArgs(xref, 0 ,[m])
 	for argDict in b:
 		ebxVa, ebxkey = argDict[m]
-	print 'Found: 0x%08x: 0x%08x' % (xref, ebxkey)
-	vuln_equal_dic[hex(xref)] =hex(ebxkey)
+		print 'Found: 0x%08x: 0x%08x' % (xref, ebxkey)
+		dic[hex(xref)] =hex(ebxkey)
 
 def length_function_recognition(potential_func_list):
 	package_func = []
@@ -212,7 +212,7 @@ def assignment_function_recognition(potential_func_list):
 	vuln_equal_array = []
 	vuln_equal_dic ={}
 	for i in potential_func_list:
-		addr = LocByName(func.name)
+		addr = LocByName(i.name)
 		call_array = []
 		if addr != BADADDR:
 			start = addr #GetFunctionAttr(ref, FUNCATTR_START)
@@ -227,7 +227,7 @@ def assignment_function_recognition(potential_func_list):
 				#print hex(keyInstr), idc.GetDisasm(keyInstr)
 				if GetMnem(keyInstr) == "mov":
 					if GetOpType(keyInstr,1) == 1 :
-						equal_reg_handle(keyInstr)
+						equal_reg_handle(keyInstr, vuln_equal_dic)
 						vuln_equal_array.append(keyInstr)
 					elif GetOpType(keyInstr,1) == 5:
 						ope_va = GetOperandValue(keyInstr, 1)
@@ -257,9 +257,11 @@ def selection_function_recognition(potential_func_list):
 #特征识别
 
 def feature_recognition(potential_func_list):
+	'''
 	length_function = length_function_recognition(potential_func_list)
 	'''
 	assignment_function_recognition(potential_func_list)
+	'''
 	loop_function_recognition(potential_func_list)
 	selection_function_recognition(potential_func_list)
 	'''
