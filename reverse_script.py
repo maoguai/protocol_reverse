@@ -95,7 +95,8 @@ def SwapToXiao(c):
 	return chr(ord(c)+t)
 
 def isJmp(addr):
-	SzOp=['JO','JNO','JB','JNB','JE','JNE','JBE','JA','JS','JNS','JP','JNP','JL','JNL','JNG','JG','JCXZ','JECXZ','JMP','JMPE']
+	#条件转移指令
+	SzOp=['JZ','JNZ','JC','JNC','JO','JNO','JB','JNB','JE','JNE','JBE','JA','JS','JNS','JP','JPE','JNP','JPO','JL','JNL','JNG','JG','JCXZ','JECXZ','JMP','JMPE']
 	llen=len(SzOp)
 	for i in range(0,llen):
 		SwapAns = ''
@@ -140,8 +141,9 @@ def isSel(func,start,end):
 			new_addr=GetDisasm(cur_start)[-6:]
 			if new_addr[-1:]<='9' and new_addr[-1:]>='0':
 				if int(new_addr,16) > cur_start:
-					jmp_addr = idc.GetOpnd(ea,0)
+					jmp_addr = idc.GetOpnd(cur_start,0)
 					flag = True
+	return flag
 
 def handleCreateThread(ea):
     vw = c_jayutils.loadWorkspace(c_jayutils.getInputFilepath())
@@ -244,27 +246,33 @@ def loop_function_recognition(potential_func_list):
 			end = GetFunctionAttr(addr, FUNCATTR_END)
 			if isCir(func, start, end) :
 				loop_func.append(func)
+	print "loop"
+	for i in loop_func:
+		print i.name
 
 def selection_function_recognition(potential_func_list):
+	selection_function = []
 	for func in potential_func_list:
 		addr = LocByName(func.name)
 		if addr != BADADDR:
 			start = addr #GetFunctionAttr(ref, FUNCATTR_START)
 			end = GetFunctionAttr(addr, FUNCATTR_END)
 			if isSel(func, start, end):
-				print "1"
+				selection_function.append(func)
+	print "selection"
+	for i in selection_function:
+		print i.name
 
 #特征识别
 
 def feature_recognition(potential_func_list):
 	'''
 	length_function = length_function_recognition(potential_func_list)
-	'''
+
 	assignment_function_recognition(potential_func_list)
 	'''
 	loop_function_recognition(potential_func_list)
 	selection_function_recognition(potential_func_list)
-	'''
 
 #筛选疑似函数
 def filter_potential_func():
