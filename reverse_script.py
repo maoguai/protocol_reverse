@@ -27,9 +27,10 @@ class Functions(object):
 		self.circle_op = op
 
 class Length_Function(object):
-	def __init__(self, func, addr, para):
+	def __init__(self, func, funcname, int_addr, para):
 		self.func = func
-		self.addr = addr
+		self.funcname = funcname
+		self.int_addr = int_addr
 		self.para = para
 
 #添加封装函数
@@ -164,7 +165,7 @@ def handleCreateThread(ea):
         for argDict in argsList:
         	#未解决2的来源
             locVa, strloc = argDict[2]
-            print 'Found: 0x%08x: 0x%08x' % (locVa, strloc)
+            # print 'Found: 0x%08x: 0x%08x' % (locVa, strloc)
             flag = True
             return flag, locVa, strloc
 
@@ -186,8 +187,9 @@ def equal_reg_handle(ea, dic):
 	b = tracker.getPushArgs(xref, 0 ,[m])
 	for argDict in b:
 		ebxVa, ebxkey = argDict[m]
-		print 'Found: 0x%08x: 0x%08x' % (xref, ebxkey)
-		dic[hex(xref)] =hex(ebxkey)
+		if ebxkey <= 0xFF:
+			print 'Found: 0x%08x: 0x%08x' % (xref, ebxkey)
+			dic[hex(xref)] =hex(ebxkey)
 
 def length_function_recognition(potential_func_list):
 	package_func = []
@@ -202,12 +204,13 @@ def length_function_recognition(potential_func_list):
 			cross_refs = CodeRefsTo(addr, 0)
 			for ref in cross_refs:
 				flag, int_addr, int_num = handleCreateThread(ref)
-				print flag, int_addr, int_num
-				if flag == True:
-					a = Length_Function(func, hex(int_addr), int_num)
+				if flag == True and 0 < int_num <= 1460:
+					a = Length_Function(func, GetFunctionName(ref),hex(int_addr), int_num)
+					print GetFunctionName(ref)
 					length_function.append(a)
+	print "--------------length--------------"
 	for i in length_function:
-		print i.func.name, i.func.origi, i.addr, i.para
+		print i.funcname, i.func.origi, i.int_addr, i.para
 	return length_function
 
 def assignment_function_recognition(potential_func_list):
@@ -233,9 +236,10 @@ def assignment_function_recognition(potential_func_list):
 						vuln_equal_array.append(keyInstr)
 					elif GetOpType(keyInstr,1) == 5:
 						ope_va = GetOperandValue(keyInstr, 1)
-						print 'Found: 0x%08x: 0x%08x' % (keyInstr, ope_va)
-						vuln_equal_array.append(keyInstr)
-						vuln_equal_dic[hex(keyInstr)] = hex(ope_va)
+						if ope_va <= 0xFF:
+							print 'Found: 0x%08x: 0x%08x' % (keyInstr, ope_va)
+							vuln_equal_array.append(keyInstr)
+							vuln_equal_dic[hex(keyInstr)] = hex(ope_va)
 
 def loop_function_recognition(potential_func_list):
 	loop_func =[]
@@ -266,14 +270,14 @@ def selection_function_recognition(potential_func_list):
 #特征识别
 
 def feature_recognition(potential_func_list):
-	'''
+	
 	length_function = length_function_recognition(potential_func_list)
-
-	assignment_function_recognition(potential_func_list)
 	'''
+	assignment_function_recognition(potential_func_list)
+	
 	loop_function_recognition(potential_func_list)
 	selection_function_recognition(potential_func_list)
-
+	'''
 #筛选疑似函数
 def filter_potential_func():
 	entries = []
@@ -287,7 +291,7 @@ def filter_potential_func():
 	#其他通信函数
 	#未实现
 	#add_socket_func(potential_func)
-	osintneting = 5
+	osintneting = 3
 	potential_func_list = []
 	package_func = []
 	old = []
@@ -317,10 +321,11 @@ def main():
 	feature_recognition(potential_func_list)
 	'''
 	print 'i'
-	if length_function_list:
-		for i in length_function_list:
-			if i.is_length == True:
-				print i.name, i.origi, i.len_func_addr, i.len_func_para
+	j=1
+	if potential_func_list:
+		for i in potential_func_list:
+			print j, i.name, i.num
+			j += 1
 	'''
 
 if __name__=="__main__":
