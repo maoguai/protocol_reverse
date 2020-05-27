@@ -16,7 +16,6 @@ class Functions(object):
 		self.name = name
 		self.num =1
 		self.is_packaged = False
-		#self.origi = None
 	def increase_num(self):
 		self.num += 1
 	def package(self, origi):
@@ -28,10 +27,10 @@ class Functions(object):
 
 class Length_Function(object):
 	def __init__(self, func, funcname, int_addr, para):
-		self.func = func
-		self.funcname = funcname
-		self.int_addr = int_addr
-		self.para = para
+		self.func = func #调用的函数
+		self.name = funcname #函数
+		self.int_addr = int_addr #指令具体地址
+		self.para = para #参数
 
 #添加封装函数
 def fun_package_add(func_name, fun_list):
@@ -189,7 +188,7 @@ def equal_reg_handle(ea, dic):
 	for argDict in b:
 		ebxVa, ebxkey = argDict[m]
 		if ebxkey <= 0xFF:
-			print 'Found: 0x%08x: 0x%08x' % (xref, ebxkey)
+			#print 'Found: 0x%08x: 0x%08x' % (xref, ebxkey)
 			dic[hex(xref)] =hex(ebxkey)
 
 def length_function_recognition(potential_func_list):
@@ -207,14 +206,14 @@ def length_function_recognition(potential_func_list):
 				flag, int_addr, int_num = handleCreateThread(ref)
 				if flag == True and 0 < int_num <= 1460:
 					a = Length_Function(func, GetFunctionName(ref),hex(int_addr), int_num)
-					print GetFunctionName(ref)
 					length_function.append(a)
 	print "--------------length--------------"
 	for i in length_function:
-		print i.funcname, i.func.origi, i.int_addr, i.para
+		print i.name, i.func.origi, i.int_addr, i.para
 	return length_function
 
 def assignment_function_recognition(potential_func_list):
+	print "--------------==--------------"
 	vuln_equal_array = []
 	vuln_equal_dic ={}
 	for i in potential_func_list:
@@ -238,9 +237,10 @@ def assignment_function_recognition(potential_func_list):
 					elif GetOpType(keyInstr,1) == 5:
 						ope_va = GetOperandValue(keyInstr, 1)
 						if ope_va <= 0xFF:
-							print 'Found: 0x%08x: 0x%08x' % (keyInstr, ope_va)
+							#print 'Found: 0x%08x: 0x%08x' % (keyInstr, ope_va)
 							vuln_equal_array.append(keyInstr)
 							vuln_equal_dic[hex(keyInstr)] = hex(ope_va)
+	print vuln_equal_dic
 
 def loop_function_recognition(potential_func_list):
 	loop_func =[]
@@ -269,16 +269,15 @@ def selection_function_recognition(potential_func_list):
 		print i.name
 
 #特征识别
-
 def feature_recognition(potential_func_list):
 	
 	length_function = length_function_recognition(potential_func_list)
+	assignment_function_recognition(length_function)
 	'''
-	assignment_function_recognition(potential_func_list)
-	
 	loop_function_recognition(potential_func_list)
 	selection_function_recognition(potential_func_list)
 	'''
+
 def judge2(p_func, func, potential_func_list):
 	for i in potential_func_list:
 		if i.name == p_func:
@@ -332,13 +331,6 @@ def filter_package(potential_func,potential_func_list):
 	for i in potential_func_list:
 		if i.is_packaged == True:
 			print i.name, i.origi
-	'''
-		if new:
-			for i in new:
-				for j in potential_func_list:
-					if i.name == j.name:
-						j.package(func)
-	'''
 
 def filter(osintneting, potential_func):
 	potential_func_list = []
@@ -388,14 +380,15 @@ def filter_potential_func():
 #main
 def main():
 	potential_func_list = filter_potential_func()
-	# feature_recognition(potential_func_list)
-	
+	feature_recognition(potential_func_list)
+	'''
 	print 'i'
 	j=1
 	if potential_func_list:
 		for i in potential_func_list:
 			print j, i.name, i.num
 			j += 1
+	'''
 	
 
 if __name__=="__main__":
