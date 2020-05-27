@@ -42,6 +42,7 @@ def fun_package_add(func_name, fun_list):
 #添加疑似函数
 def fun_list_add(func_name, fun_list):
 	flag = False
+	func_name = func_name.strip()
 	for i in fun_list:
 		if func_name == i.name :
 			i.increase_num()
@@ -278,6 +279,75 @@ def feature_recognition(potential_func_list):
 	loop_function_recognition(potential_func_list)
 	selection_function_recognition(potential_func_list)
 	'''
+def judge2(p_func, func, potential_func_list):
+	for i in potential_func_list:
+		if i.name == p_func:
+			num1 = i.num
+		elif i.name == func.name:
+			num2 = i.num
+			tmp = i
+		else:
+			continue
+	if num1-num2 < 5 and num1-num2 > 0:
+		tmp.package(p_func)
+
+def judeg1(xref_froms, p_func, potential_func_list, func):
+	flag = False
+	for ref in xref_froms:
+		test = hex(get_name_ea(0, p_func))
+		if len(xref_froms) == 1 and ref == test:
+			for j in potential_func_list:
+				if j.name == func.name:
+					j.package(p_func)
+					flag = True
+	return flag
+
+def filter_package(potential_func,potential_func_list):	
+	recv_recall_chain = []
+	osintneting = 2
+	for p_func in potential_func :
+		flag = False
+		package_func = []
+		del recv_recall_chain[:]
+		# 输入函数的父函数
+		get_caller(p_func, osintneting, package_func, recv_recall_chain)
+		# package_func的子函数
+		for func in package_func:
+			addr = get_name_ea(0, func.name)
+			dism_addr = list(idautils.FuncItems(addr))
+			xref_froms = []
+			for ea in dism_addr:
+				if ida_idp.is_call_insn(ea) is False:
+					continue
+				else:
+					callee = get_first_fcref_from(ea)
+					if callee != addr:
+						xref_froms.append(hex(callee))
+			# 封装函数判断方法一:封装函数要求向下遍历只有对应函数
+			flag = judeg1(xref_froms, p_func, potential_func_list, func)
+			# 封装函数判断方法二:封装函数和对应函数比较次数接近
+			if flag == False and len(xref_froms) != 0 :
+				judge2(p_func,func, potential_func_list)
+	print "----------"
+	for i in potential_func_list:
+		if i.is_packaged == True:
+			print i.name, i.origi
+	'''
+		if new:
+			for i in new:
+				for j in potential_func_list:
+					if i.name == j.name:
+						j.package(func)
+	'''
+
+def filter(osintneting, potential_func):
+	potential_func_list = []
+	recv_recall_chain = []
+	for func in potential_func :
+		del recv_recall_chain[:]
+		get_caller(func, osintneting, potential_func_list, recv_recall_chain)
+	return 	potential_func_list
+
 #筛选疑似函数
 def filter_potential_func():
 	entries = []
@@ -297,11 +367,10 @@ def filter_potential_func():
 	old = []
 	new = []
 	#存放反向调用链信息
-	recv_recall_chain = []
-	for func in potential_func :
-		del recv_recall_chain[:]
-		get_caller(func, osintneting, potential_func_list, recv_recall_chain)
+	potential_func_list = filter(osintneting, potential_func)
+	filter_package(potential_func,potential_func_list)
 	#获取封装函数
+	'''
 	osintneting = 2
 	for func in potential_func :
 		del recv_recall_chain[:]
@@ -313,20 +382,21 @@ def filter_potential_func():
 				for j in potential_func_list:
 					if i.name == j.name:
 						j.package(func)
+	'''
 	return potential_func_list
 
 #main
 def main():
 	potential_func_list = filter_potential_func()
-	feature_recognition(potential_func_list)
-	'''
+	# feature_recognition(potential_func_list)
+	
 	print 'i'
 	j=1
 	if potential_func_list:
 		for i in potential_func_list:
 			print j, i.name, i.num
 			j += 1
-	'''
+	
 
 if __name__=="__main__":
 	main()
